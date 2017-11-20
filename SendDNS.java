@@ -1,104 +1,153 @@
 import java.net.*;
 import java.io.*;
 import java.util.*;
-//testing git
+
 class SendDNS {
 
-    static final short DNSPORT = 53;
+	static final short DNSPORT = 53;
 
-    static void usage() {
-	System.out.println("Usage: java SendDNS nameserver domain_name/ip_address");
-	System.exit(1);
-    }
-
-    static byte[] parseInetAddress(String inetAddr) throws NumberFormatException {
-	String[] sp = inetAddr.split("\\.");
-	byte[] addr = new byte[4];
-	if(sp.length!=4){
-	    throw new NumberFormatException();
-	}
-	for(int i=0; i<4; i++){
-	    int x = Integer.parseInt(sp[i]);
-	    if(x<0 || x>255)
-		throw new NumberFormatException();
-	    addr[i] = (byte) x;
-	}
-	return addr;
-    }
-
-    static public void main(String[] args) throws IOException{
-	boolean debug = false;
-
-	if(args.length<2) usage();
-  
-	String nameserver = args[0];
-	String hostname = args[1];
-	    
-	System.out.printf("Sending DNS Query (%s) to server %s\n",hostname,nameserver);
-
-	byte[] serveraddr = null;
-	try {
-	     serveraddr = parseInetAddress(nameserver);
-	}
-	catch(NumberFormatException e){
-	    System.out.printf("Invalid nameserver %s\n",nameserver);
-	    System.exit(1);
+	static void usage() {
+		System.out.println("Usage: java SendDNS nameserver domain_name/ip_address");
+		System.exit(1);
 	}
 
-	DNS result = sendRequest(serveraddr, hostname);
-	System.out.println("Response:\n");
-	System.out.println(result);
-    }
-// SIFNWEFSNON
-    static DNS sendRequest(byte[] serveraddr, String hostname) throws IOException {
-	/* create a datagram socket to send messages */
-	DatagramSocket dSocket = null;
-	try {
-	    dSocket = new DatagramSocket();
-	}
-	catch(IOException e){
-	    System.err.println(e);
-	    System.exit(1);
-	}
-
-	// using a constant name server address for now.
-
-	InetAddress serverAddress = null;
-	/* get inet address of name server */
-	try {
-	    serverAddress = InetAddress.getByAddress(serveraddr);
-	}
-	catch(UnknownHostException e){
-	    System.err.println(e);
-	    System.exit(1);
+	static byte[] parseInetAddress(String inetAddr) throws NumberFormatException {
+		String[] sp = inetAddr.split("\\.");
+		byte[] addr = new byte[4];
+		if(sp.length!=4){
+			throw new NumberFormatException();
+		}
+		for(int i=0; i<4; i++){
+			int x = Integer.parseInt(sp[i]);
+			if(x<0 || x>255)
+				throw new NumberFormatException();
+			addr[i] = (byte) x;
+		}
+		return addr;
 	}
 
-	/* set up buffers */
-	String line;
-	byte[] inBuffer = new byte[1000];
+	static public void iterative(String[] args) throws IOException{
+		boolean debug = false;
 
-        DatagramPacket outPacket = new DatagramPacket(new byte[1],1,serverAddress,DNSPORT);
-        DatagramPacket inPacket = new DatagramPacket(inBuffer,1000);
+		if(args.length<2) usage();
 
-	// construct the query message in a byte array
-	byte[] query = new byte[1500];
-	int querylen=DNS.constructQuery(query,1500,hostname);
+		String nameserver = args[0];
+		String hostname = args[1];
 
-	// construct a DNS object from the byte array
-	DNS dnsMessage = new DNS(query);
-	System.out.println("Sending query:"+dnsMessage+" to "+serverAddress);
+		System.out.printf("Sending DNS Query (%s) to server %s\n",hostname,nameserver);
 
-	// send the byte array as a datagram
-	outPacket.setData(query,0,querylen);
-	for(int i=0; i<200; i++)
-	    dSocket.send(outPacket);
+		byte[] serveraddr = null;
+		try {
+			serveraddr = parseInetAddress(nameserver);
+		}
+		catch(NumberFormatException e){
+			System.out.printf("Invalid nameserver %s\n",nameserver);
+			System.exit(1);
+		}
 
-	// await the response 
-	dSocket.receive(inPacket);
+		DNS result = sendRequest(serveraddr, hostname, false, false);
+		System.out.println("Response:\n");
+		System.out.println(result);
+	}
+	
+	static public void nameserver(String[] args) throws IOException{
+		boolean debug = false;
 
-	byte[] answerbuf = inPacket.getData();
+		if(args.length<2) usage();
 
-	DNS response = new DNS(answerbuf);
-	return response;
-    }
+		String nameserver = args[0];
+		String hostname = args[1];
+
+		System.out.printf("Sending DNS Query (%s) to server %s\n",hostname,nameserver);
+
+		byte[] serveraddr = null;
+		try {
+			serveraddr = parseInetAddress(nameserver);
+		}
+		catch(NumberFormatException e){
+			System.out.printf("Invalid nameserver %s\n",nameserver);
+			System.exit(1);
+		}
+
+		DNS result = sendRequest(serveraddr, hostname, true, false);
+		System.out.println("Response:\n");
+		System.out.println(result);
+	}
+	
+	static public void recurse(String[] args) throws IOException{
+		boolean debug = false;
+
+		if(args.length<2) usage();
+
+		String nameserver = args[0];
+		String hostname = args[1];
+
+		System.out.printf("Sending DNS Query (%s) to server %s\n",hostname,nameserver);
+
+		byte[] serveraddr = null;
+		try {
+			serveraddr = parseInetAddress(nameserver);
+		}
+		catch(NumberFormatException e){
+			System.out.printf("Invalid nameserver %s\n",nameserver);
+			System.exit(1);
+		}
+
+		DNS result = sendRequest(serveraddr, hostname, false, true);
+		System.out.println("Response:\n");
+		System.out.println(result);
+	}
+	
+	// SIFNWEFSNON
+	static DNS sendRequest(byte[] serveraddr, String hostname, boolean name, boolean rec) throws IOException {
+		/* create a datagram socket to send messages */
+		DatagramSocket dSocket = null;
+		try {
+			dSocket = new DatagramSocket();
+		}
+		catch(IOException e){
+			System.err.println(e);
+			System.exit(1);
+		}
+
+		// using a constant name server address for now.
+
+		InetAddress serverAddress = null;
+		/* get inet address of name server */
+		try {
+			serverAddress = InetAddress.getByAddress(serveraddr);
+		}
+		catch(UnknownHostException e){
+			System.err.println(e);
+			System.exit(1);
+		}
+
+		/* set up buffers */
+		String line;
+		byte[] inBuffer = new byte[1000];
+
+		DatagramPacket outPacket = new DatagramPacket(new byte[1],1,serverAddress,DNSPORT);
+		DatagramPacket inPacket = new DatagramPacket(inBuffer,1000);
+
+		// construct the query message in a byte array
+		byte[] query = new byte[1500];
+		int querylen=DNS.constructQuery(query,1500,hostname, name, rec);
+
+		// construct a DNS object from the byte array
+		DNS dnsMessage = new DNS(query);
+		System.out.println("Sending query:"+dnsMessage+" to "+serverAddress);
+
+		// send the byte array as a datagram
+		outPacket.setData(query,0,querylen);
+		for(int i=0; i<200; i++)
+			dSocket.send(outPacket);
+
+		// await the response 
+		dSocket.receive(inPacket);
+
+		byte[] answerbuf = inPacket.getData();
+
+		DNS response = new DNS(answerbuf);
+		return response;
+	}
 }
