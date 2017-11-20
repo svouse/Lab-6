@@ -128,6 +128,7 @@ public class Resolve {
 			if(!isValid){
 				String response = "Invalid Format"; 
 				System.out.println(response);
+				nameserver = addr;
 				continue;
 			}
 			else if(findHost(host)){
@@ -159,6 +160,7 @@ public class Resolve {
 		String nameserver = args[0];
 		int line = 0;
 		while(true) {
+			line = 0;
 			byte[] serveraddr = null;
 			try {
 				serveraddr = SendDNS.parseInetAddress(nameserver);
@@ -175,6 +177,7 @@ public class Resolve {
 			String[] p = parts[line].split(" ");
 			host = p[0];
 			addr = p[1];
+			while(line < parts.length) {
 			System.out.println("THIS IS THE RESULT:\n" + result);
 			System.out.println("Searching cache...");
 			int i;
@@ -212,6 +215,7 @@ public class Resolve {
 	        	
 			}	
 			System.out.println("\n\n");
+			}
         }
 	}
 	
