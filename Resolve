@@ -14,9 +14,9 @@ import java.util.Scanner;
 public class Resolve {
 	private final static int serverPort = 5193;
 	private final static int rootNameServerPort = 5193;
-	
+
 	private static Map<String,String> cacheMap = new HashMap<String, String>();
-	
+
 	public static void loadCache(){
 		System.out.println("Loading Cache....");
 		try {
@@ -33,17 +33,17 @@ public class Resolve {
 			System.out.println(e.getMessage());
 		}
 	}
-	
+
 	public static void writeToCache(){
-		
+
 		try {			            
-				
+
 			PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("cache.txt")));
-			
+
 			for (Map.Entry<String, String> entry : cacheMap.entrySet()) {
-			    String hostname = entry.getKey();
-			    String ipAddress = entry.getValue();
-			    out.println(hostname+" "+ipAddress);
+				String hostname = entry.getKey();
+				String ipAddress = entry.getValue();
+				out.println(hostname+" "+ipAddress);
 			}           			  
 			out.close();
 		}
@@ -51,31 +51,31 @@ public class Resolve {
 			System.out.println(e.getMessage());
 		}
 	}
-	
-	
+
+
 	public static boolean findHost(String hostname){
 		boolean found = false;
 		if(cacheMap.size() > 0){
 			for (String key : cacheMap.keySet()) {
-			    if(key.contains(hostname)){
-			    	found = true;
-			    }
+				if(key.contains(hostname)){
+					found = true;
+				}
 			}
 			return found;
 		}		
 		return found;
 	}
-	
+
 	public static String getCachedAddress(String hostname){
 		for (String key : cacheMap.keySet()) {
-		    if(key.equals(hostname)){
-		    	System.out.println(cacheMap.get(key));
-		    	return "Local DNS: "+hostname+" : "+ cacheMap.get(key);
-		    }
+			if(key.equals(hostname)){
+				System.out.println(cacheMap.get(key));
+				return "Local DNS: "+hostname+" : "+ cacheMap.get(key);
+			}
 		}
 		return null;
 	}
-	
+
 	public static String getDomain(String host){
 		if(host.endsWith(".com")){
 			return ".com";
@@ -84,7 +84,7 @@ public class Resolve {
 		}
 		return "Host Not found";
 	}
-	
+
 	public static void iterative(String[] args) throws IOException{
 		System.out.println("DNS Server started...");
 		loadCache();
@@ -133,92 +133,27 @@ public class Resolve {
 			}
 			else if(findHost(host)){
 				System.out.println("Host found in cache");
-				
+
 				String response =getCachedAddress(host);
 
 				System.out.println("resolved to: " + response);
 				System.exit(1);
 			}else{
 				System.out.println("Host not in cache, performing iterative search...");				
-							
-				cacheMap.put(hostname, addr);
-				writeToCache();
-				String response = "Local DNS: "+host+" : "+addr;
-	        	
-			}	
-			System.out.println("\n\n");
-        }
-    }
-	
-	public static void recursive(String[] args) throws IOException{
-		System.out.println("DNS Server started...");
-		loadCache();
-		System.out.println("\n");
-		String host;
-		String addr;
-		String hostname = args[1];
-		String nameserver = args[0];
-		int line = 0;
-		while(true) {
-			line = 0;
-			byte[] serveraddr = null;
-			try {
-				serveraddr = SendDNS.parseInetAddress(nameserver);
-			}
-			catch(NumberFormatException e){
-				System.out.printf("Invalid nameserver %s\n",nameserver);
-				System.exit(1);
-			}
-			DNS result = SendDNS.sendRequest(serveraddr, hostname);
-			System.out.println("Response:\n");
-			System.out.println(result.toString());
-			String s = result.toString();
-			String[] parts = s.split("\n");
-			String[] p = parts[line].split(" ");
-			host = p[0];
-			addr = p[1];
-			while(line < parts.length) {
-			System.out.println("THIS IS THE RESULT:\n" + result);
-			System.out.println("Searching cache...");
-			int i;
-			boolean isValid = true;
-			for(i=0; i<host.length(); i++){
-				if(host.charAt(i) != '.' && !Character.isAlphabetic(host.charAt(i))){
-					isValid = false;
-				}
-			}
-			String checking = addr.substring(0, 2);
-			for ( i = 0; i< 3; i++) {
-				if (Character.isDigit(checking.charAt(i))) {
-					isValid = false;
-				};
-			}
-			if(!isValid){
-				String response = "Invalid Format. Searching through result."; 
-				System.out.println(response);
-				line++;
-				continue;
-			}
-			else if(findHost(host)){
-				System.out.println("Host found in cache");
-				
-				String response =getCachedAddress(host);
 
-				System.out.println("resolved to: " + response);
-				System.exit(1);
-			}else{
-				System.out.println("Host not in cache, performing recursive search...");				
-							
 				cacheMap.put(hostname, addr);
 				writeToCache();
 				String response = "Local DNS: "+host+" : "+addr;
-	        	
+
 			}	
 			System.out.println("\n\n");
-			}
-        }
+		}
 	}
+
+	public static void recursive(String[] args) throws IOException{
 	
+	}
+
 	public static void nameserver(String[] args) throws IOException{
 		loadCache();
 		System.out.println("\n");
@@ -232,12 +167,30 @@ public class Resolve {
 				System.out.printf("Invalid nameserver %s\n",nameserver);
 				System.exit(1);
 			}
-        }
-    }
-	
+		}
+	}
+
 	public static void main(String args[]) throws Exception {
-		
-    }
-	
-	
+		if (args.length > 3) {
+			String flag = args[0];
+			if (flag.equals("-n")) {
+
+			} if (flag.equals("-r")) {
+
+			} if (args.length > 4) {
+				String maybeFlag = args[1];
+				if (flag.equals("-v")) {
+
+				} if (maybeFlag.equals("-n")) {
+
+				} if (maybeFlag.equals("-r")) {
+
+				}
+
+			}
+		}  else {
+		}
+
+	}
 }
+
