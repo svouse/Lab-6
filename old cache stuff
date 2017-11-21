@@ -1,0 +1,68 @@
+
+	/*public static void loadCache(){
+		System.out.println("Loading Cache....");
+		try {
+			Scanner in = new Scanner(new FileReader("cache.txt"));			
+			while (in.hasNext()){
+				String hostname = in.next();
+				String ip_address = in.next();				
+				cacheMap.put(hostname, ip_address);				
+			}			
+			in.close();
+			System.out.println("Loading cache completed!");
+		}
+		catch (IOException e){
+			System.out.println(e.getMessage());
+		}
+	}
+
+	public static void writeToCache(){
+
+		try {			            
+
+			PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("cache.txt")));
+
+			for (Map.Entry<String, String> entry : cacheMap.entrySet()) {
+				String hostname = entry.getKey();
+				String ipAddress = entry.getValue();
+				out.println(hostname+" "+ipAddress);
+			}           			  
+			out.close();
+		}
+		catch (IOException e){
+			System.out.println(e.getMessage());
+		}
+	}
+
+
+	public static boolean findHost(String hostname){
+		boolean found = false;
+		if(cacheMap.size() > 0){
+			for (String key : cacheMap.keySet()) {
+				if(key.contains(hostname)){
+					found = true;
+				}
+			}
+			return found;
+		}		
+		return found;
+	}
+
+	public static String getCachedAddress(String hostname){
+		for (String key : cacheMap.keySet()) {
+			if(key.equals(hostname)){
+				System.out.println(cacheMap.get(key));
+				return "Local DNS: "+hostname+" : "+ cacheMap.get(key);
+			}
+		}
+		return null;
+	}
+
+	public static String getDomain(String host){
+		if(host.endsWith(".com")){
+			return ".com";
+		}else if(host.endsWith(".tt")){
+			return ".tt";
+		}
+		return "Host Not found";
+	}*/
