@@ -124,9 +124,10 @@ class DNS {
 		return result;
 	}
 
-	static int constructQuery(byte[] qarr, int len, String hostname){
+	static int constructQuery(byte[] qarr, int len, String hostname, int recursive, int r){
+		
 		boolean reverse = false;
-
+		if(r==1) reverse = true;
 		String[] addrarr = hostname.split("\\.");
 		if(addrarr.length==4){
 			try {
@@ -148,8 +149,11 @@ class DNS {
 		int queryid = ((int)(0x10000*Math.random())) & 0xffff;
 		qarr[0] = (byte)((queryid & 0xff00)>>8);
 		qarr[1] = (byte)(queryid & 0xff);
-
+		if(recursive == 1) qarr[2] = (byte) recursive;
+		
+		//, last bit in 3rd byte
 		// set question count = 1
+		
 		qarr[5] = 1;
 
 		// add the name
@@ -168,7 +172,7 @@ class DNS {
 		// finally the class: INET
 		qarr[querylen+1] = 1;
 		querylen += 2;
-
+		
 		return querylen;
 	}
 
