@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -85,7 +86,8 @@ public class Resolve {
 		return "Host Not found";
 	}
 
-	public static void iterative(String[] args) throws IOException{
+	public static void iter(String[] args, boolean verbose) throws IOException{
+		ArrayList<String> resolved = new ArrayList();
 		System.out.println("DNS Server started...");
 		loadCache();
 		System.out.println("\n");
@@ -93,21 +95,23 @@ public class Resolve {
 		String addr;
 		String hostname = args[1];
 		String nameserver = args[0];
-		while(true) {		
-			byte[] serveraddr = null;
-			try {
-				serveraddr = SendDNS.parseInetAddress(nameserver);
-			}
-			catch(NumberFormatException e){
-				System.out.printf("Invalid nameserver %s\n",nameserver);
-				System.exit(1);
-			}
-			DNS result = SendDNS.sendRequest(serveraddr, hostname);
-			System.out.println("Response:\n");
-			System.out.println(result.toString());
-			String s = result.toString();
-			String[] parts = s.split("\n");
-			String[] p = parts[1].split(" ");
+		int times = 0;
+		byte[] serveraddr = null;
+		try {
+			serveraddr = SendDNS.parseInetAddress(nameserver);
+		}
+		catch(NumberFormatException e){
+			System.out.printf("Invalid nameserver %s\n",nameserver);
+			System.exit(1);
+		}
+		DNS result = SendDNS.sendRequest(serveraddr, hostname, false, false);
+		System.out.println("Response:\n");
+		System.out.println(result.toString());
+		String s = result.toString();
+		String[] parts = s.split("\n");
+		int length = parts.length;
+		while(times < length) {	
+			String[] p = parts[times].split(" ");
 			host = p[1];
 			addr = p[2];
 			System.out.println("THIS IS THE RESULT:\n" + result);
@@ -129,15 +133,13 @@ public class Resolve {
 				String response = "Invalid Format"; 
 				System.out.println(response);
 				nameserver = addr;
-				continue;
 			}
 			else if(findHost(host)){
-				System.out.println("Host found in cache");
+				//System.out.println("Host found in cache");
 
 				String response =getCachedAddress(host);
 
 				System.out.println("resolved to: " + response);
-				System.exit(1);
 			}else{
 				System.out.println("Host not in cache, performing iterative search...");				
 
@@ -150,45 +152,186 @@ public class Resolve {
 		}
 	}
 
-	public static void recursive(String[] args) throws IOException{
-	
-	}
-
-	public static void nameserver(String[] args) throws IOException{
-		loadCache();
+	public static void recursive(String[] args, boolean verbose) throws IOException{
+		ArrayList<String> resolved = new ArrayList();
+		System.out.println("DNS Server started...");
+		//loadCache();
 		System.out.println("\n");
-		while(true) {
-			String nameserver = args[0];
-			byte[] serveraddr = null;
-			try {
-				serveraddr = SendDNS.parseInetAddress(nameserver);
+		String host;
+		String addr;
+		String hostname = args[1];
+		String nameserver = args[0];
+		byte[] serveraddr = null;
+		try {
+			serveraddr = SendDNS.parseInetAddress(nameserver);
+		}
+		catch(NumberFormatException e){
+			System.out.printf("Invalid nameserver %s\n",nameserver);
+			System.exit(1);
+		}
+		DNS result = SendDNS.sendRequest(serveraddr, hostname, false, false);
+		System.out.println("Response:\n");
+		System.out.println(result.toString());
+		String s = result.toString();
+		String[] parts = s.split("\n");
+		int times = 0;
+		while(true) {		
+			String[] p = parts[times].split(" ");
+			host = p[1];
+			addr = p[2];
+			System.out.println("Searching cache...");
+			int i;
+			boolean isValid = true;
+			for(i=0; i<host.length(); i++){
+				if(host.charAt(i) != '.' && !Character.isAlphabetic(host.charAt(i))){
+					isValid = false;
+				}
 			}
-			catch(NumberFormatException e){
-				System.out.printf("Invalid nameserver %s\n",nameserver);
-				System.exit(1);
+			String checking = addr.substring(0, 2);
+			for ( i = 0; i< 3; i++) {
+				if (Character.isDigit(checking.charAt(i))) {
+					isValid = false;
+				};
 			}
+			if(!isValid){
+				String response = "Invalid Format"; 
+				System.out.println(response);
+				nameserver = addr;
+			}
+			else if(findHost(host)){
+				//System.out.println("Host found in cache");
+
+				String response =getCachedAddress(host);
+
+				System.out.println("resolved to: " + response);
+			}else{
+				System.out.println("Host not in cache, performing iterative search...");				
+
+				cacheMap.put(hostname, addr);
+				writeToCache();
+				String response = "Local DNS: "+host+" : "+addr;
+
+			}
+			times++;
+			System.out.println("\n\n");
 		}
 	}
 
+	public static void nameserver(String[] args, boolean verbose) throws IOException{
+		String nameserverCopy = args[0];
+		String hostnameCopy = args[1];
+		
+		ArrayList<String> alias = new ArrayList<String>();
+		
+		String nameserver = nameserverCopy;
+		String hostname = hostnameCopy;
+		String b [] = new String[3];
+		while(true){
+			char c1 = b[2].charAt(0);
+			char c2 = b[2].charAt(1);
+			if(b[2]=="SOA"){
+				System.out.println("Host " + hostnameCopy + " not found");
+				break;
+			}
+			else if((Character.isDigit(c1) && Character.isDigit(c2))){
+				if(!alias.isEmpty()){
+					for(int i = 0; i<alias.size();i++){
+						System.out.println(alias.get(i));
+					}
+					System.out.println(hostname + " resolves to " + b[2]);
+					System.out.println(hostname + " resolves to " + b[0]);
+				}
+				System.out.println(hostnameCopy + " resolves to " + b[2]);
+				System.out.println(hostnameCopy + " resolves to " + b[0]);
+				break;
+			}
+			else if (b[2].equals("true")){
+				if(!alias.isEmpty()){
+					for(int i = 0; i<alias.size();i++){
+						System.out.println(alias.get(i));
+					}
+					System.out.println(hostname + " resolves to " + b[0]);
+					break;
+				}
+				System.out.println(hostnameCopy + " resolves to " + b[0]);
+				break;
+			}
+			else if(b[2].equals("CNAME")){
+				alias.add(hostname + " is an alias of " + b[1]);
+				nameserver = nameserverCopy;
+				hostname = b[1];
+			}
+			else{
+				nameserver = b[0];
+				hostname = b[1];
+			}
+
+		}
+	}
+	
+	public static boolean isIp(String ip) {
+		String checking = ip.substring(0, 2);
+		for ( int i = 0; i< 3; i++) {
+			if (Character.isDigit(checking.charAt(i))) {
+				return false;
+			};
+		}
+		return true;
+	}
+	
+	public static boolean isDomain(String domain) {
+		for(int i=0; i<domain.length(); i++){
+			if(domain.charAt(i) != '.' && !Character.isAlphabetic(domain.charAt(i))){
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public static void main(String args[]) throws Exception {
-		if (args.length > 3) {
-			String flag = args[0];
+		if (args.length > 4) {
+			String verb = args[0];
+			String flag = args[1];
+			String[] briefArgs = new String[2];
+			briefArgs[0] = args[2];
+			briefArgs[1] = args[3];
+			if (!isIp(args[2]) || !(isDomain(args[3])) || !verb.equals("-v")) {
+				System.out.println("Improper args. Usage: "
+						+ "Resolve <verbose flag (optional)> <recursive"
+						+ " or nameserver flag (optional)> <IP> <Domain>");
+				System.exit(1);
+			}
 			if (flag.equals("-n")) {
-
+				// call nameserver with verbose
 			} if (flag.equals("-r")) {
-
-			} if (args.length > 4) {
-				String maybeFlag = args[1];
-				if (flag.equals("-v")) {
-
-				} if (maybeFlag.equals("-n")) {
-
-				} if (maybeFlag.equals("-r")) {
-
+				// call recursive with verbose
+			}
+		}else if (2 < args.length && args.length < 4) {
+				String flag = args[0];
+				String[] briefArgs = new String[2];
+				briefArgs[0] = args[1];
+				briefArgs[1] = args[2];
+				//if (!isIp(args[1]) || !(isDomain(args[2]))) {
+				//	System.out.println("HERE");
+				//	System.out.println("Improper args. Usage: "
+				//			+ "Resolve <verbose flag (optional)> <recursive"
+				//			+ " or nameserver flag (optional)> <IP> <Domain>");
+				//	System.exit(1);
+				//}
+				if (flag.equals("-n")) {
+					// call nameserver sans verbose
+					nameserver(briefArgs, true);
+				} if (flag.equals("-r")) {
+					// call recursive sans verbose
+					recursive(briefArgs, true);
 				}
 
 			}
-		}  else {
+		  else {
+			  String[] briefArgs = new String[1];
+			  briefArgs[0] = args[0];
+			  //else call iterative, us isDomain and isIp to sort out how else to proceed
+			  iter(briefArgs, true);
 		}
 
 	}
